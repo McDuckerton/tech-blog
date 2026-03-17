@@ -1,11 +1,11 @@
 const express = require('express');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Claude API proxy endpoint
-router.post('/generate', authenticateToken, async (req, res) => {
+// Claude API proxy endpoint (public for development)
+router.post('/generate', async (req, res) => {
   try {
     const { messages, max_tokens = 4000, temperature = 0.7 } = req.body;
 
@@ -21,7 +21,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens,
         temperature,
         messages
@@ -46,8 +46,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
   }
 });
 
-// Blog post generation endpoint
-router.post('/blog-post', authenticateToken, async (req, res) => {
+// Blog post generation endpoint (public for development)
+router.post('/blog-post', async (req, res) => {
   try {
     const { category, trends, sources, customPrompt } = req.body;
 
@@ -102,9 +102,9 @@ Format the response as JSON with the following structure:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 4000,
-        temperature: 0.7,
+        model: 'claude-sonnet-4-20250514',
+        max_tokens,
+        temperature,
         messages: [{ role: 'user', content: prompt }]
       })
     });

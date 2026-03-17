@@ -22,6 +22,7 @@ function App() {
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogPost />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/categories/:category" element={<Categories />} />
               <Route path="/agents" element={<AIAgents />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/login" element={<Login />} />

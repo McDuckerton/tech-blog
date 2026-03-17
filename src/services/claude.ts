@@ -20,36 +20,39 @@ export class ClaudeService {
 
     try {
       // Try to use the backend API first (avoids CORS issues)
-      if (this.baseUrl && this.baseUrl !== 'http://localhost:3001') {
-        return await this.makeBackendRequest(messages, maxTokens, temperature);
-      }
-
-      // Fallback to direct API call (may have CORS issues)
-      console.log('Using direct Claude API call');
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: maxTokens,
-          temperature,
-          messages
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Claude API error: ${response.status}`);
-      }
-
-      return await response.json();
+      console.log('Using backend API for Claude requests');
+      return await this.makeBackendRequest(messages, maxTokens, temperature);
     } catch (error) {
-      console.error('Error calling Claude API (trying fallback):', error);
-      console.log('Falling back to mock responses');
-      return this.getMockResponse(messages[0].content);
+      console.error('Error calling Claude API via backend (trying direct):', error);
+      
+      // Fallback to direct API call (may have CORS issues)
+      try {
+        console.log('Trying direct Claude API call');
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': this.apiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: maxTokens,
+            temperature,
+            messages
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Claude API error: ${response.status}`);
+        }
+
+        return await response.json();
+      } catch (directError) {
+        console.error('Error calling Claude API (trying fallback):', directError);
+        console.log('Falling back to mock responses');
+        return this.getMockResponse(messages[0].content);
+      }
     }
   }
 
@@ -247,7 +250,15 @@ Format the response as JSON with the following structure:
 
       const content = response.content[0];
       if (content.type === 'text') {
-        return JSON.parse(content.text);
+        // Clean up markdown code blocks if present
+        let text = content.text.trim();
+        
+        // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+        if (text.startsWith('```')) {
+          text = text.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+        }
+        
+        return JSON.parse(text);
       }
       
       throw new Error('Unexpected response format from Claude');
